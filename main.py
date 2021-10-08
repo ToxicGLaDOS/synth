@@ -34,7 +34,7 @@ def get_sample_sine(t, freq):
 # sample
 def sample_to_ints(sample: float) -> list[int]:
     # This gets us one byte per SAMPLE_WIDTH (at most)
-    sample *= 128 ** SAMPLE_WIDTH
+    sample *= (2**8)**SAMPLE_WIDTH/2
     sample *= VOLUME_RATIO
     sample = int(sample)
     sample_bytes = sample.to_bytes(SAMPLE_WIDTH, byteorder='little', signed=True)
