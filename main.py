@@ -6,7 +6,22 @@ CHANNELS = 2
 SAMPLE_WIDTH = 2
 VOLUME_RATIO = 1/4
 
-def get_sample(t, freq):
+def get_sample_triangle(t, freq):
+    if (2 * t * freq) % 2 < 1:
+        return get_sample_sawtooth(2 * t, freq)
+    else:
+        return -get_sample_sawtooth(2 * t, freq)
+
+def get_sample_square(t, freq):
+    if (t * freq) % 1 < .5:
+        return 1
+    else:
+        return -1
+
+def get_sample_sawtooth(t, freq):
+    return 2 * ((t * freq) % 1) - 1
+
+def get_sample_sine(t, freq):
     return math.sin(2 * math.pi * t * freq)
 
 # Converts a sample from -1-1 space to
@@ -19,7 +34,7 @@ def get_sample(t, freq):
 # sample
 def sample_to_ints(sample: float) -> list[int]:
     # This gets us one byte per SAMPLE_WIDTH (at most)
-    sample *= 256 ** SAMPLE_WIDTH
+    sample *= 128 ** SAMPLE_WIDTH
     sample *= VOLUME_RATIO
     sample = int(sample)
     sample_bytes = sample.to_bytes(SAMPLE_WIDTH, byteorder='little', signed=True)
@@ -50,7 +65,7 @@ def main():
         left_samples = []
         for x in range(SAMPLE_RATE * 10):
             t = x / SAMPLE_RATE
-            sample = (get_sample(t, 440))
+            sample = (get_sample_sine(t, 440))
             sample_ints = sample_to_ints(sample)
             left_samples.extend(sample_ints)
 
