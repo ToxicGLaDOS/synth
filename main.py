@@ -58,8 +58,9 @@ def join_channels(left, right):
     
     return joined
 
-
-def get_note(attack, decay, sustain, release, freq):
+# vibrato[0] is frequency of vibrato
+# vibrato[1] is the amplitude of vibrato
+def get_note(attack, decay, sustain, release, freq, vibrato=(0,0), volume=1):
     samples = []
     for x in range(int(attack[0]*SAMPLE_RATE)):
         t = x / SAMPLE_RATE
@@ -76,8 +77,12 @@ def get_note(attack, decay, sustain, release, freq):
 
     for x in range(int(sustain[0]*SAMPLE_RATE)):
         t = x / SAMPLE_RATE
+        # I still do not fully understand why this division by t
+        # is required for vibrato, the math makes sense with it, and
+        # it sounds correct with it, but I have no intuition for why it's there
+        vib_freq = get_sample_sine(t, vibrato[0]) * vibrato[1] / max(1,t)
         progress = x/(sustain[0]*SAMPLE_RATE)
-        sample = get_sample_sine(t, freq) * (decay[1] - progress * (decay[1] - sustain[1]))
+        sample = get_sample_sine(t, freq + vib_freq) * (decay[1] - progress * (decay[1] - sustain[1]))
         samples.append(sample)
 
     for x in range(int(release[0]*SAMPLE_RATE)):
@@ -85,6 +90,8 @@ def get_note(attack, decay, sustain, release, freq):
         progress = x/(release[0]*SAMPLE_RATE)
         sample = get_sample_sine(t, freq) * (sustain[1] - progress * (sustain[1] - release[1]))
         samples.append(sample)
+
+    samples = [sample * volume for sample in samples]
 
     return samples
 
@@ -105,14 +112,13 @@ def main():
         float_samples = []
         left_samples = []
 
-        base = get_note((.5, 1), (0, 1), (2, .9), (.5, 0), 440)
-        h1   = get_note((.5, 1), (0, 1), (2, .9), (.5, 0), 440 * 2)
-        h2   = get_note((.5, 1), (0, 1), (2, .9), (.5, 0), 440 * 3)
-        h3   = get_note((.5, 1), (0, 1), (2, .9), (.5, 0), 440 * 4)
-        h4   = get_note((.5, 1), (0, 1), (2, .9), (.5, 0), 440 * 5)
+        base = get_note((.1, 1), (.1, .7), (2, .7), (.5, 0), 440,     vibrato=(5, .15), volume=1)
+        h1   = get_note((.1, 1), (.1, .7), (2, .7), (.5, 0), 440 * 2, vibrato=(5, .15), volume=.5)
+        h2   = get_note((.1, 1), (.1, .7), (2, .7), (.5, 0), 440 * 3, vibrato=(5, .15), volume=.166)
+        h3   = get_note((.1, 1), (.1, .7), (2, .7), (.5, 0), 440 * 4, vibrato=(5, .15), volume=.2)
+        h4   = get_note((.1, 1), (.1, .7), (2, .7), (.5, 0), 440 * 5, vibrato=(5, .15), volume=.05)
 
         float_samples = merge_samples(base, h1, h2, h3, h4)
-
 
         for sample in float_samples:
             sample_ints = sample_to_ints(sample)
