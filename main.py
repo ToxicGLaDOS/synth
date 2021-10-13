@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 import wave, math
+import itertools
+import matplotlib.pyplot as plt
 
 SAMPLE_RATE = 44100
 CHANNELS = 2
@@ -56,16 +58,63 @@ def join_channels(left, right):
     
     return joined
 
+
+def get_note(attack, decay, sustain, release, freq):
+    samples = []
+    for x in range(int(attack[0]*SAMPLE_RATE)):
+        t = x / SAMPLE_RATE
+        progress = x/(attack[0]*SAMPLE_RATE)
+        sample = get_sample_sine(t, freq) * progress * attack[1]
+        samples.append(sample)
+
+    for x in range(int(decay[0]*SAMPLE_RATE)):
+        t = x / SAMPLE_RATE
+        progress = x/(decay[0]*SAMPLE_RATE)
+        vol = (attack[1] - progress * (attack[1] - decay[1]))
+        sample = get_sample_sine(t, freq) * vol
+        samples.append(sample)
+
+    for x in range(int(sustain[0]*SAMPLE_RATE)):
+        t = x / SAMPLE_RATE
+        progress = x/(sustain[0]*SAMPLE_RATE)
+        sample = get_sample_sine(t, freq) * (decay[1] - progress * (decay[1] - sustain[1]))
+        samples.append(sample)
+
+    for x in range(int(release[0]*SAMPLE_RATE)):
+        t = x / SAMPLE_RATE
+        progress = x/(release[0]*SAMPLE_RATE)
+        sample = get_sample_sine(t, freq) * (sustain[1] - progress * (sustain[1] - release[1]))
+        samples.append(sample)
+
+    return samples
+
+
+def merge_samples(*args):
+    new_samples = []
+    for samples in itertools.zip_longest(*args):
+        new_samples.append(sum(samples)/len(args))
+
+    return new_samples
+
 def main():
     with wave.open("test.wav", 'wb') as out_file:
         out_file.setframerate(SAMPLE_RATE)
         out_file.setnchannels(CHANNELS)
         out_file.setsampwidth(SAMPLE_WIDTH)
 
+        float_samples = []
         left_samples = []
-        for x in range(SAMPLE_RATE * 10):
-            t = x / SAMPLE_RATE
-            sample = (get_sample_sine(t, 440))
+
+        base = get_note((.5, 1), (0, 1), (2, .9), (.5, 0), 440)
+        h1   = get_note((.5, 1), (0, 1), (2, .9), (.5, 0), 440 * 2)
+        h2   = get_note((.5, 1), (0, 1), (2, .9), (.5, 0), 440 * 3)
+        h3   = get_note((.5, 1), (0, 1), (2, .9), (.5, 0), 440 * 4)
+        h4   = get_note((.5, 1), (0, 1), (2, .9), (.5, 0), 440 * 5)
+
+        float_samples = merge_samples(base, h1, h2, h3, h4)
+
+
+        for sample in float_samples:
             sample_ints = sample_to_ints(sample)
             left_samples.extend(sample_ints)
 
@@ -74,6 +123,8 @@ def main():
         ba = bytearray(samples)
         out_file.writeframes(ba)
 
+        #plt.plot(range(len(float_samples)), float_samples)
+        #plt.show()
 
 if __name__ == "__main__":
     main()
